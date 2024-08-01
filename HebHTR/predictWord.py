@@ -8,8 +8,8 @@ class Batch:
         self.gtTexts = gtTexts
 
 class FilePaths:
-    fnCharList = 'model/charList.txt'
-    fnCorpus = 'data/corpus.txt'
+    fnCharList = 'HebHTR/model/charList.txt'
+    fnCorpus = 'HebHTR/data/corpus.txt'
 
 def infer(model, image):
     img = preprocessImageForPrediction(image, Model.imgSize)
@@ -23,7 +23,7 @@ def getModel(decoder_type):
     else:
         decoderType = DecoderType.BestPath
 
-    model = Model(open(FilePaths.fnCharList).read(), decoderType,
+    model = Model(open(FilePaths.fnCharList,encoding='utf-8').read(), decoderType,
                   mustRestore=True)
     return model
 
