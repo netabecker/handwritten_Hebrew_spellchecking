@@ -1,5 +1,12 @@
 import numpy as np
+import os
 import tensorflow as tf
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+tf.compat.v1.disable_eager_execution()
+tf.compat.v1.disable_v2_behavior()
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
+from word_beam_search import WordBeamSearch
 
 '''
 Handwritten text recognition model written by Harald Scheidl:
@@ -26,7 +33,7 @@ class Model:
         self.snapID = 0
 
         # Whether to use normalization over a batch or a population
-        self.is_train = tf.placeholder(tf.bool, name='is_train')
+        self.is_train = tf.compat.v1.placeholder(tf.bool, name='is_train')
 
         # input image batch
         self.inputImgs = tf.placeholder(tf.float32, shape=(
@@ -40,9 +47,9 @@ class Model:
         # setup optimizer to train NN
         self.batchesTrained = 0
         self.learningRate = tf.placeholder(tf.float32, shape=[])
-        self.update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        self.update_ops = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(self.update_ops):
-            self.optimizer = tf.train.RMSPropOptimizer(
+            self.optimizer = tf.compat.v1.train.RMSPropOptimizer(
                 self.learningRate).minimize(self.loss)
 
         # initialize TF
@@ -60,7 +67,7 @@ class Model:
         # create layers
         pool = cnnIn4d  # input to first CNN layer
         for i in range(numLayers):
-            kernel = tf.Variable(tf.truncated_normal(
+            kernel = tf.Variable(tf.compat.v1.truncated_normal(
                 [kernelVals[i], kernelVals[i], featureVals[i],
                  featureVals[i + 1]], stddev=0.1))
             conv = tf.nn.conv2d(pool, kernel, padding='SAME',
@@ -115,9 +122,9 @@ class Model:
         # calc loss for batch
         self.seqLen = tf.placeholder(tf.int32, [None])
         self.loss = tf.reduce_mean(
-            tf.nn.ctc_loss(labels=self.gtTexts, inputs=self.ctcIn3dTBC,
-                           sequence_length=self.seqLen,
-                           ctc_merge_repeated=True))
+            tf.compat.v1.nn.ctc_loss(labels=self.gtTexts, inputs=self.ctcIn3dTBC,
+                                     sequence_length=self.seqLen,
+                                     ctc_merge_repeated=True))
 
         # calc loss for each element to compute label probability
         self.savedCtcInput = tf.placeholder(tf.float32,
@@ -134,12 +141,12 @@ class Model:
                                                     sequence_length=self.seqLen)
         elif self.decoderType == DecoderType.WordBeamSearch:
             # import compiled word beam search operation (see https://github.com/githubharald/CTCWordBeamSearch)
-            word_beam_search_module = tf.load_op_library('./TFWordBeamSearch.so')
+            #word_beam_search_module = tf.load_op_library('./TFWordBeamSearch.so')
 
             # prepare information about language (dictionary, characters in dataset, characters forming words)
             chars = str().join(self.charList)
 
-            with open('model/wordCharList.txt', "rb") as f:
+            with open('HebHTR/model/wordCharList.txt', "rb") as f:
                 byte = f.read(1)
                 if byte != "":
                     byte = f.read()
@@ -147,19 +154,20 @@ class Model:
                     wordChars = myString.splitlines()[0]
 
 
-            corpus = open('data/corpus.txt').read()
+            corpus = open('HebHTR/data/corpus.txt',encoding='utf-8').read()
 
             # decode using the "Words" mode of word beam search
-            self.decoder = word_beam_search_module.word_beam_search(
-                tf.nn.softmax(self.ctcIn3dTBC, axis=2), 50, 'Words', 0.0,
+            self.decoder = WordBeamSearch(
+                50, 'Words', 0.0,
                 corpus.encode('utf8'), chars.encode('utf8'),
                 wordChars.encode('utf8'))
+            self.wbs_input = tf.nn.softmax(self.ctcIn3dTBC, axis=2)
 
     def setupTF(self):
-        sess = tf.Session()  # TF session
+        sess = tf.compat.v1.Session()  # TF session
 
-        saver = tf.train.Saver(max_to_keep=1)  # saver saves model to file
-        modelDir = 'model/'
+        saver = tf.compat.v1.train.Saver(max_to_keep=1)  # saver saves model to file
+        modelDir = 'HebHTR/model/'
         latestSnapshot = tf.train.latest_checkpoint(
             modelDir)  # is there a saved model?
 
@@ -227,12 +235,13 @@ class Model:
         # decode, optionally save RNN output
         numBatchElements = len(batch.imgs)
         evalRnnOutput = self.dump or calcProbability
-        evalList = [self.decoder] + ([self.ctcIn3dTBC] if evalRnnOutput else [])
+        evalList = ([self.wbs_input if self.decoderType == DecoderType.WordBeamSearch else self.decoder]
+                    + ([self.ctcIn3dTBC] if evalRnnOutput else []))
         feedDict = {self.inputImgs: batch.imgs,
                     self.seqLen: [Model.maxTextLen] * numBatchElements,
                     self.is_train: False}
         evalRes = self.sess.run(evalList, feedDict)
-        decoded = evalRes[0]
+        decoded = self.decoder.compute(evalRes[0]) if self.decoderType == DecoderType.WordBeamSearch else evalRes[0]
         texts = self.decoderOutputToText(decoded, numBatchElements)
 
         # feed RNN output and recognized text into CTC loss to compute labeling probability
