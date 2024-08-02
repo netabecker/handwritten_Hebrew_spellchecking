@@ -1,15 +1,14 @@
-from processFunctions import *
-from predictWord import *
-import os
+import predictWord
+import cv2
 
 class HebHTR:
 
     def __init__(self, img_path):
         self.img_path = img_path
         self.img = cv2.imread(img_path)
+        self.predictWordModel = predictWord.getModel(decoder_type='word_beam')
 
-    def imgToWord(self, decoder_type='word_beam'):
+    def imgToWord(self):
         transcribed_words = []
-        model = getModel(decoder_type=decoder_type)
-        transcribed_words.extend(predictWord(self.img, model))
+        transcribed_words.extend(predictWord.predictWord(self.img, self.predictWordModel))
         return transcribed_words

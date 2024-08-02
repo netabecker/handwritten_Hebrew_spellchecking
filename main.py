@@ -4,7 +4,7 @@ import HebHTR
 
 # Create new HebHTR object.
 img = HebHTR.HebHTR('example.png')
-text = img.imgToWord(decoder_type='word_beam')
+text = img.imgToWord()
 print(text)
 
 
