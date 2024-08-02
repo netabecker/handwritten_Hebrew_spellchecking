@@ -3,33 +3,47 @@
 
 ### Breakdown to tasks:
 
-1. **OCR Model:** \
-Use the existing OCR model to extract the sentences form a written paragraph.
+**1. OCR Model:** 
+- [x] Clone the existing OCR model and make it usable.
 
-2. **Create a dataset of misspelled sentences:** \
-Create a dataset of misspelled sentences and their correct versio
+**2. Image Segmentation Model:**
+- [ ] Create or find existing model to break up images of sentences.
 
-3. **Error Detection and Correction Model** \
-Error Detection: Develop a model to identify potential spelling errors in the OCR output.
-Correction Suggestions: Train a model (seq2seq or transformers) to suggest corrections for the identified errors.
+**3. Create a dataset of misspelled sentences:**
+- [ ] Create a dataset of misspelled sentences and their correct versions.
 
-4. **Training the Spellchecking Model** \
-Training Data: Create pairs of erroneous text and the corresponding correct text. \
-Model Architecture: Look at models like BERT or GPT.
+**4. Hebrew word2vec Model:**
+- [ ] Find existing and make usable.
 
-5. **Evaluation and Fine-Tuning** \
-Evaluation Metrics: Use metrics like accuracy, precision, recall, and F1-score to evaluate the performance of your spellchecker.
-Fine-Tuning: Fine-tune your model on a validation set and iteratively improve its performance.
+**5. Error Detection and Correction Model**
+- [ ] Develop a seq2seq model to identify and correct potential spelling errors.
+      
+**6. Training the Spellchecking Model**
+- [ ] Training Data: Create pairs of erroneous text and the corresponding correct text.
+- [ ] Model Architecture: Look at models like BERT or GPT.
 
-6. **Integration and Testing** \
-Integration: Integrate your spellchecker with the OCR model to form a complete pipeline from handwritten text image to corrected digital text.
-Testing: Test the entire pipeline on new handwritten Hebrew text samples.
+**7. Integration and Testing**
+- [ ] Integration: Integrate your spellchecker with the OCR and segmentation models to form a complete pipeline from handwritten text image to corrected digital text.
+- [ ] Testing: Test the entire pipeline on new handwritten Hebrew text samples.
+
 
 **Tools and Libraries** \
 Deep Learning Frameworks: TensorFlow, PyTorch \
 NLP Libraries: Hugging Face Transformers, NLTK, SpaCy \
 Data Augmentation: Tools for generating synthetic handwritten text images (if needed) 
 
+
+### Resources
+**1. Handritten text recognition model:**\
+https://github.com/Lotemn102/HebHTR
+https://github.com/githubharald/SimpleHTR
+
+**2. Hebrew word2vec model:**\
+https://github.com/liorshk/wordembedding-hebrew
+
+**3. Guides about translation, seq2seq and transformers**\
+https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html
+https://github.com/bentrevett/pytorch-seq2seq
 
 ### Example Workflow
 
