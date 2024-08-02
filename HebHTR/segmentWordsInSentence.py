@@ -1,0 +1,75 @@
+import cv2
+import numpy as np
+from sklearn import mixture
+from scipy.stats import norm
+
+
+def gaussian_likelihood(x, mean, variance):
+    # Compute the probability density function (PDF)
+    coef = 1.0 / np.sqrt(2.0 * np.pi * variance)
+    exponent = np.exp(- (x - mean) ** 2 / (2 * variance))
+    return coef * exponent
+
+def segmentWordsInSentence(img):
+    if len(img.shape) > 2:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # Binarize image
+    _, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Split into rows
+    row_sum = np.sum(255 - img, 1)
+    n_pixels_allowed_in_zero_row = 1
+    zero_rows = np.where(row_sum <= 255 * n_pixels_allowed_in_zero_row)[0]
+    non_zero_segments = [[zero_rows[i], zero_rows[i + 1]] for i in range(len(zero_rows) - 1) if
+                         zero_rows[i + 1] - zero_rows[i] > 1]
+    rows = [img[s[0]:s[1], :] for s in non_zero_segments]
+
+    # In each row, find the lengths and locations of spaces
+    all_space_lengths = []
+    all_space_start = []
+    all_space_end = []
+    for ri, row in enumerate(rows):
+        col_sum = np.sum(255 - row, 0)
+        col_sum[1:-1][(col_sum[:-2] == 0) & (col_sum[2:] == 0)] = 0 # if there's only one column with values, it's still space
+        col_sum[2:-2][(col_sum[:-4] == 0) & (col_sum[4:] == 0)] = 0 # if there's only 2 columns with values, it's still space
+
+        # Trim first and last space (their lengths are out of the distribution)
+        start_ind = next((i for i, x in enumerate(col_sum) if x != 0), None)
+        end_ind = len(col_sum) - 1 - next((i for i, x in enumerate(np.flip(col_sum)) if x != 0), None)
+        col_sum = col_sum[start_ind:end_ind]
+        rows[ri] = row[:, start_ind:end_ind]
+
+        # Find start, end and lengths of spaces
+        space_indicator = col_sum == 0
+        space_start = np.where(space_indicator[1:] & ~space_indicator[:-1])[0] + 1
+        space_end = np.where(~space_indicator[1:] & space_indicator[:-1])[0]
+        space_lengths = space_end - space_start
+
+        all_space_start.append(space_start)
+        all_space_end.append(space_end)
+        all_space_lengths.append(space_lengths)
+
+    # Assuming the spaces belong to 2 groups: spaces between words, and spaces between letters.
+    # The spaces between words are larger than the spaces between letters.
+    # To cluster them, we'll fit a mixture of 2 Gaussians to the list of spaces lengths.
+    # For each space, we'll calculate the likelihood that it belongs to a group.
+    # The spaces that belong to the Gaussian with the larger mean are the spaces between letters.
+    gmm = mixture.GaussianMixture(n_components=2).fit(np.concatenate(all_space_lengths).reshape(-1, 1))
+    m, M = gmm.means_.flatten()
+    v, V = gmm.covariances_.flatten()
+    real_space_likelihood = [gaussian_likelihood(space_lengths, M, V).flatten() for space_lengths in
+                             all_space_lengths]
+    fake_space_likelihood = [gaussian_likelihood(space_lengths, m, v).flatten() for space_lengths in
+                             all_space_lengths]
+
+    # Now we can get cropped images of the words.
+    words = []
+    for ri, row in enumerate(rows):
+        real_space = real_space_likelihood[ri] > fake_space_likelihood[ri]
+        word_end = all_space_start[ri][real_space]
+        word_end = np.append(word_end, row.shape[1])
+        word_start = all_space_end[ri][real_space]
+        word_start = np.insert(word_start, 0, 0)
+        words.append([row[:, s:e] for s, e in zip(word_start, word_end)])
+    return words
