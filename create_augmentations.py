@@ -1,7 +1,9 @@
 import pandas as pd
 import random
 
+verbose = True
 percentage = 30
+default_prob = float(percentage) / 100
 # Path to your input TXT file
 input_txt_path = 'datasets/hebrew_text.txt'
 # Path to your output TXT file
@@ -11,30 +13,35 @@ output_txt_path = output_path + '.txt'
 # Function to randomly replace letters
 def random_replace(string):
     replacements = {
-            'א': ['ע', 'ה'],
-            'ע': ['א', 'ה'],
-            'ה': ['א', 'ע'],
+            'א': [('ע', default_prob), ('ה', default_prob)],
+            'ע': [('א', default_prob), ('ה', default_prob)],
+            'ה': [('א', default_prob), ('ע', default_prob)],
 
-            'ט': ['ת'],
-            'ת': ['ט'],
+            'ט': [('ת', default_prob)],
+            'ת': [('ט', default_prob)],
 
-            'ח': ['כ'],
-            'כ': ['ח', 'ק'],
-            'ק': ['כ'],
+            'ח': [('כ', default_prob)],
+            'כ': [('ח', default_prob), ('ק', default_prob)],
+            'ק': [('כ', default_prob)],
 
-            'ש': ['ס'],
-            'ס': ['ש']
+            'ש': [('ס', default_prob / 2)],
+            'ס': [('ש', default_prob / 2)],
 
-            # 'לא ': ['לו '],
-            # 'לו ': ['לא ']
+            'ב': [('ו', default_prob / 4)],
+            'ו': [('ב', default_prob / 4)],
+
+            'לא ': ('לו ', default_prob),
+            'לו ': [('לא ', default_prob)]
         }
 
     # Convert string to list to make replacements
     string_list = list(string)
     for idx, char in enumerate(string_list):
         if char in replacements:
-            if (random.random() * 100) < percentage:  # chance that a letter will be replaced
-                string_list[idx] = random.choice(replacements[char])
+            for replacement, prob in replacements[char]:
+                if random.random() < prob:  # Unique probability for each replacement
+                    string_list[idx] = replacement
+                    break  # Stop after the first replacement
     return ''.join(string_list)
 
 
@@ -48,6 +55,11 @@ for line in lines:
     line = line.strip()
     modified_line = random_replace(line)
     processed_lines.append(f"{line}\t{modified_line}")
+
+if verbose:
+    print(f'-----------> Example:\n\n')
+    print(processed_lines[1])
+    print(f'<-----------= Example:\n\n')
 
 # Save data in txt format - uncomment to activate
 # # Write the original and modified text to the output TXT file
