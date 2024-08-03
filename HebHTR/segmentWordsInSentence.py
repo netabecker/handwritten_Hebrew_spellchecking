@@ -46,27 +46,30 @@ def segmentWordsInSentence(img):
         space_end = np.where(~space_indicator[1:] & space_indicator[:-1])[0]
         space_lengths = space_end - space_start
 
+        # Ignore random spaces
+        space_start = space_start[space_lengths > 0]
+        space_end = space_end[space_lengths > 0]
+        space_lengths = space_lengths[space_lengths > 0]
+
         all_space_start.append(space_start)
         all_space_end.append(space_end)
         all_space_lengths.append(space_lengths)
 
+    if len(rows) == 1 and len(all_space_lengths[0]) < 4:
+        # Check if there's only one word
+        # TODO: design a better test to this
+        return rows
+
     # Assuming the spaces belong to 2 groups: spaces between words, and spaces between letters.
     # The spaces between words are larger than the spaces between letters.
     # To cluster them, we'll fit a mixture of 2 Gaussians to the list of spaces lengths.
-    # For each space, we'll calculate the likelihood that it belongs to a group.
-    # The spaces that belong to the Gaussian with the larger mean are the spaces between letters.
+    # We'll cluster each space by the component it belongs to.
     gmm = mixture.GaussianMixture(n_components=2).fit(np.concatenate(all_space_lengths).reshape(-1, 1))
-    m, M = gmm.means_.flatten()
-    v, V = gmm.covariances_.flatten()
-    real_space_likelihood = [gaussian_likelihood(space_lengths, M, V).flatten() for space_lengths in
-                             all_space_lengths]
-    fake_space_likelihood = [gaussian_likelihood(space_lengths, m, v).flatten() for space_lengths in
-                             all_space_lengths]
 
     # Now we can get cropped images of the words.
     words = []
     for ri, row in enumerate(rows):
-        real_space = real_space_likelihood[ri] > fake_space_likelihood[ri]
+        real_space = gmm.predict(all_space_lengths[ri].reshape(-1,1)) == np.argmax(gmm.means_)
         word_end = all_space_start[ri][real_space]
         word_end = np.append(word_end, row.shape[1])
         word_start = all_space_end[ri][real_space]
