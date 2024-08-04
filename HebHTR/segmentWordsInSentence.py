@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
+from sklearn.cluster import KMeans
 from sklearn import mixture
-from scipy.stats import norm
 
 
 def gaussian_likelihood(x, mean, variance):
@@ -9,6 +9,11 @@ def gaussian_likelihood(x, mean, variance):
     coef = 1.0 / np.sqrt(2.0 * np.pi * variance)
     exponent = np.exp(- (x - mean) ** 2 / (2 * variance))
     return coef * exponent
+
+def pad_word(word):
+    return np.pad(word,
+                  np.round([s/10 for s in word.shape]).astype('int'),
+                  'constant', constant_values=255)
 
 def segmentWordsInSentence(img):
     if len(img.shape) > 2:
@@ -58,21 +63,23 @@ def segmentWordsInSentence(img):
     if len(rows) == 1 and len(all_space_lengths[0]) < 4:
         # Check if there's only one word
         # TODO: design a better test to this
-        return rows
+        return [pad_word(rows[0])]
 
     # Assuming the spaces belong to 2 groups: spaces between words, and spaces between letters.
     # The spaces between words are larger than the spaces between letters.
-    # To cluster them, we'll fit a mixture of 2 Gaussians to the list of spaces lengths.
-    # We'll cluster each space by the component it belongs to.
-    gmm = mixture.GaussianMixture(n_components=2).fit(np.concatenate(all_space_lengths).reshape(-1, 1))
+    # To cluster them, we'll use KMeans.
+    kmeans = KMeans(n_clusters=2, random_state=0).fit(np.concatenate(all_space_lengths).reshape(-1, 1))
 
     # Now we can get cropped images of the words.
     words = []
-    for ri, row in enumerate(rows):
-        real_space = gmm.predict(all_space_lengths[ri].reshape(-1,1)) == np.argmax(gmm.means_)
+    for ri,row in enumerate(rows):
+        real_space = kmeans.predict(all_space_lengths[ri].reshape(-1,1)) == np.argmax(kmeans.cluster_centers_)
         word_end = all_space_start[ri][real_space]
         word_end = np.append(word_end, row.shape[1])
         word_start = all_space_end[ri][real_space]
         word_start = np.insert(word_start, 0, 0)
-        words.append([row[:, s:e] for s, e in zip(word_start, word_end)])
+        row_words = list(reversed([row[:,s:e] for s,e in zip(word_start, word_end)])) # reversing because Hebrew writes from right to left
+        words = words + row_words
+
+    words = [pad_word(w) for w in words]
     return words

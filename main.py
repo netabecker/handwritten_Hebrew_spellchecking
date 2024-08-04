@@ -3,7 +3,7 @@ sys.path.append('./HebHTR')
 import HebHTR
 
 # Create new HebHTR object.
-img = HebHTR.HebHTR('example.png')
+img = HebHTR.HebHTR('example2.png')
 text = img.imgToWord()
 print(text)
 
