@@ -2,7 +2,7 @@ import pandas as pd
 from datasets import Dataset
 # import tensorflow as tf
 from create_augmentations import *
-from transformers import BertTokenizer, TrainingArguments, Trainer
+from transformers import BertTokenizer, TrainingArguments, Trainer, BatchEncoding
 from datasets import load_from_disk
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 import os
@@ -21,20 +21,9 @@ torch.cuda.manual_seed_all(seed)
 
 X_NAME = 'errors'  # Todo: change names
 Y_NAME = 'original'
-max_length = 256
+max_length = 128
 # --------- HELPER FUNCTIONS -----------
 # -------------------------------------->
-
-# def correct_spelling(text):
-#     inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
-#     outputs = model(**inputs)
-#     predictions = torch.argmax(outputs.logits, dim=-1)
-#     return tokenizer.decode(predictions[0], skip_special_tokens=True)
-
-
-# def tokenize_data(data, max_length):
-#     return tokenizer(data, truncation=True, padding=True, max_length=max_length, return_tensors='pt')
-
 
 class TextDataset(torch.utils.data.Dataset):
     def __init__(self, encodings, labels):
@@ -42,9 +31,18 @@ class TextDataset(torch.utils.data.Dataset):
         self.labels = labels
 
     def __getitem__(self, idx):
-        item = {key: val[idx].clone().detach() for key, val in self.encodings.items()}
-        item['labels'] = self.labels[idx].clone().detach()
+        print("Available keys in encodings:", self.encodings.keys())
+        item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items() if key in ['input_ids', 'attention_mask']}
         # item['labels'] = self.labels[idx]
+        # print(item)
+        # Ensure labels are correctly indexed
+        if isinstance(self.labels, BatchEncoding):
+            item['labels'] = self.labels['input_ids'][idx]  # Adjust according to how labels are stored
+        else:
+            item['labels'] = torch.tensor(self.labels[idx])
+
+        # item['labels'] = self.labels[idx].clone().detach()
+        # item['labels'] = torch.tensor(self.labels[idx])
         return item
 
     def __len__(self):
@@ -99,8 +97,8 @@ for name, param in model.named_parameters():
 
 # Model Hyperparameters
 # -------------------------------------->
-BATCH_SIZE = 16
-num_epochs = 3
+BATCH_SIZE = 384
+num_epochs = 384
 # <--------------------------------------
 
 # -------------- DATASET ---------------
@@ -125,6 +123,8 @@ test_labels_tokenized = tokenizer(y_train, truncation=True, padding=True, max_le
 
 text_tensor_train_ds = TextDataset(train_data_tokenized, train_labels_tokenized)
 text_tensor_test_ds = TextDataset(test_data_tokenized, test_labels_tokenized)
+# text_tensor_train_ds = DataLoader(text_tensor_train_ds, batch_size=2, shuffle=True)
+# text_tensor_test_ds = DataLoader(text_tensor_test_ds, batch_size=2, shuffle=True)
 
 print(len(text_tensor_train_ds))
 
@@ -143,7 +143,7 @@ trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=text_tensor_train_ds,
-    eval_dataset=text_tensor_test_ds,
+    # eval_dataset=text_tensor_test_ds,
     compute_metrics=lambda p: {
         'accuracy': accuracy_score(p.predictions.argmax(axis=1), p.label_ids),
         'precision': precision_score(p.predictions.argmax(axis=1), p.label_ids, average='weighted'),
