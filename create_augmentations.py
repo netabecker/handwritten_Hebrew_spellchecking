@@ -1,7 +1,6 @@
 import pandas as pd
 import random
-import datasets as ds
-from datasets import Dataset
+from datasets import Dataset, DatasetDict
 
 
 def random_replace(string, default_prob):
@@ -90,11 +89,30 @@ def export_dataset(excel_path):
         'original': texts_corrected
     }
 
-    dataset = ds.Dataset.from_dict(data_dict)
+    # dataset = ds.Dataset.from_dict(data_dict)
+    dataset = Dataset.from_dict(data_dict)
+
     return dataset
+
+
+def export_train_test_dataset(excel_path, test_size=0.2):
+    dataset = export_dataset(excel_path)
+    # Split the dataset into training and testing sets
+    train_test_split = dataset.train_test_split(test_size=test_size)
+
+    # Return the DatasetDict containing train and test datasets
+    # return DatasetDict({
+    #     'train': train_test_split['train'],
+    #     'test': train_test_split['test']
+    # })
+    return train_test_split['train'], train_test_split['test']
+
 
 
 def full_run(percentage=30, verbose=True):
     return export_dataset(create_augmentations(percentage, verbose))
 
+
+def full_run_train_test_split(percentage=30, verbose=True):
+    return export_train_test_dataset(create_augmentations(percentage, verbose))
 
