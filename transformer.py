@@ -31,7 +31,7 @@ class TextDataset(torch.utils.data.Dataset):
         self.labels = labels
 
     def __getitem__(self, idx):
-        print("Available keys in encodings:", self.encodings.keys())
+        #print("Available keys in encodings:", self.encodings.keys())
         item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items() if key in ['input_ids', 'attention_mask']}
         # item['labels'] = self.labels[idx]
         # print(item)
@@ -46,7 +46,7 @@ class TextDataset(torch.utils.data.Dataset):
         return item
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.encodings['input_ids'])
 # <--------------------------------------
 
 

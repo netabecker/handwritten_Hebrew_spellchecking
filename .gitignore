@@ -1,2 +1,4 @@
 /.idea
 HebHTR/__pycache__
+/__pycache__/*
+/logs/*
