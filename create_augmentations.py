@@ -1,6 +1,9 @@
+import os.path
+
 import pandas as pd
 import random
 from datasets import Dataset, DatasetDict
+import torch
 
 
 def random_replace(string, default_prob):
@@ -37,7 +40,7 @@ def random_replace(string, default_prob):
     return ''.join(string_list)
 
 
-def create_augmentations(percentage=30, verbose=True):
+def create_augmentations(percentage=30, verbose=False):
     default_prob = float(percentage) / 100
     input_txt_path = 'datasets/hebrew_text.txt'
     output_path = 'datasets/hebrew_text_aug_' + str(percentage)
@@ -96,20 +99,22 @@ def export_dataset(excel_path):
 
 
 def export_train_test_dataset(excel_path, test_size=0.2):
-    dataset = export_dataset(excel_path)
-    # Split the dataset into training and testing sets
-    train_test_split = dataset.train_test_split(test_size=test_size)
+    if (not os.path.exists('datasets/train.pt')) and (not os.path.exists('datasets/test.pt')):
+        dataset = export_dataset(excel_path)
+        # Split the dataset into training and testing sets
+        train_test_split = dataset.train_test_split(test_size=test_size)
+        torch.save(train_test_split['train'], 'datasets/train.pt')
+        torch.save(train_test_split['test'], 'datasets/test.pt')
 
-    # Return the DatasetDict containing train and test datasets
-    # return DatasetDict({
-    #     'train': train_test_split['train'],
-    #     'test': train_test_split['test']
-    # })
-    return train_test_split['train'], train_test_split['test']
+        return train_test_split['train'], train_test_split['test']
+    else:
+        train_split = torch.load('datasets/train.pt')
+        test_split = torch.load('datasets/test.pt')
+        return train_split, test_split
 
 
 
-def full_run(percentage=30, verbose=True):
+def full_run(percentage=30, verbose=False):
     return export_dataset(create_augmentations(percentage, verbose))
 
 
