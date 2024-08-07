@@ -173,14 +173,15 @@ def prepare_data(tokenizer, low_mem=True):
     dataset_test.set_format('pytorch')
     train_inputs = dataset_train[X_NAME]
     train_labels = dataset_train[Y_NAME]
-
-    if low_mem:
-        train_inputs = train_inputs[:50]
-        train_labels = train_labels[:50]
-        print(f'Making the train size smaller due to low memory')
-
     test_inputs = dataset_test[X_NAME]
     test_labels = dataset_test[Y_NAME]
+
+    if low_mem:
+        train_inputs = train_inputs[:100]
+        train_labels = train_labels[:100]
+        test_inputs = test_inputs[:50]
+        test_labels = test_labels[:50]
+        print(f'Making the sets smaller due to low memory')
 
     train_input_tokenized = tokenizer(train_inputs, truncation=True, padding=True, max_length=max_length, return_tensors='pt')
     train_labels_tokenized = tokenizer(train_labels, truncation=True, padding=True, max_length=max_length, return_tensors='pt').input_ids

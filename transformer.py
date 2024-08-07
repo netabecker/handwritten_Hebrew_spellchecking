@@ -70,7 +70,10 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         progress_bar.update(1)
 
-torch.save(model.state_dict(), 'spellcheck_model/saved_model')
+torch.save(model.state_dict(), 'spellcheck_model/saved_model.pth')
+
+num_testing_steps = num_epochs * len(test_dataloader)
+progress_bar_test = tqdm(range(num_testing_steps))
 
 
 metric = evaluate.load("accuracy")
@@ -94,7 +97,7 @@ for batch in test_dataloader:
     references = references[mask]
 
     metric.add_batch(predictions=predictions, references=references)
-
+    progress_bar.update(1)
 
 # Compute the final accuracy
 final_score = metric.compute()
