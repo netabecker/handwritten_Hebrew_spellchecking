@@ -20,7 +20,7 @@ import evaluate
 
 # ---------- HYPERPARAMETERS -----------
 # -------------------------------------->
-BATCH_SIZE = 8
+BATCH_SIZE = 16
 num_epochs = 3
 # <--------------------------------------
 
@@ -70,6 +70,7 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         progress_bar.update(1)
 
+torch.save(model.state_dict(), 'spellcheck_model/saved_model')
 
 
 metric = evaluate.load("accuracy")
@@ -81,7 +82,21 @@ for batch in test_dataloader:
 
     logits = outputs.logits
     predictions = torch.argmax(logits, dim=-1)
-    metric.add_batch(predictions=predictions, references=batch["labels"])
+    # metric.add_batch(predictions=predictions, references=batch["labels"])
 
-metric.compute()
+    # Flatten predictions and references
+    predictions = predictions.view(-1)
+    references = batch["labels"].view(-1)
+
+    # Filter out padding tokens (if applicable)
+    mask = references != tokenizer.pad_token_id
+    predictions = predictions[mask]
+    references = references[mask]
+
+    metric.add_batch(predictions=predictions, references=references)
+
+
+# Compute the final accuracy
+final_score = metric.compute()
+print("Accuracy:", final_score)
 

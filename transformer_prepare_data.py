@@ -165,7 +165,7 @@ def get_model():
     return model, tokenizer
 
 
-def prepare_data(tokenizer):
+def prepare_data(tokenizer, low_mem=True):
     # -------------- DATASET ---------------
     # -------------------------------------->
     dataset_train, dataset_test = full_run_train_test_split(verbose=False)
@@ -173,6 +173,12 @@ def prepare_data(tokenizer):
     dataset_test.set_format('pytorch')
     train_inputs = dataset_train[X_NAME]
     train_labels = dataset_train[Y_NAME]
+
+    if low_mem:
+        train_inputs = train_inputs[:50]
+        train_labels = train_labels[:50]
+        print(f'Making the train size smaller due to low memory')
+
     test_inputs = dataset_test[X_NAME]
     test_labels = dataset_test[Y_NAME]
 
@@ -192,13 +198,13 @@ def prepare_data(tokenizer):
     torch.save(text_tensor_test_ds, 'datasets/tokenized/text_tensor_test_ds.pt')
 
 
-def get_model_and_data(path_to_data='datasets/tokenized'):
+def get_model_and_data(path_to_data='datasets/tokenized', low_mem=True):
     model, tokenizer = get_model()
     # prepare_data(tokenizer)  # todo: remove this line
 
     if not os.path.exists(path_to_data):
         os.makedirs('datasets/tokenized', exist_ok=True)
-        prepare_data(tokenizer)
+        prepare_data(tokenizer, low_mem)
 
     return model, tokenizer
 
