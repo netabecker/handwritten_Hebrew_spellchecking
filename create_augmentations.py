@@ -1,12 +1,26 @@
 import os.path
-
 import pandas as pd
 import random
 from datasets import Dataset, DatasetDict
 import torch
 
 
+def is_running_in_colab():
+    try:
+        import google.colab
+        return True
+    except ImportError:
+        return False
+
+
+data_dir = 'datasets/'
+if is_running_in_colab():
+    data_dir = ""
+
+
 def random_replace(string, default_prob):
+    drop_prob = default_prob / 6
+    space_prob = default_prob / 6
     replacements = {
         'א': [('ע', default_prob), ('ה', default_prob)],
         'ע': [('א', default_prob), ('ה', default_prob)],
@@ -25,25 +39,41 @@ def random_replace(string, default_prob):
         'ב': [('ו', default_prob / 4)],
         'ו': [('ב', default_prob / 4)],
 
-        'לא ': ('לו ', default_prob),
-        'לו ': [('לא ', default_prob)]
+        'ג': [('ז', default_prob / 4)],
+        'ז': [('ג', default_prob / 4)]
     }
 
     # Convert string to list to make replacements
     string_list = list(string)
+    previous_was_changed = False  # we avoid dropping a few letters in a row
     for idx, char in enumerate(string_list):
         if char in replacements:
             for replacement, prob in replacements[char]:
                 if random.random() < prob:  # Unique probability for each replacement
                     string_list[idx] = replacement
+                    previous_was_changed = True
                     break  # Stop after the first replacement
-    return ''.join(string_list)
+        if previous_was_changed is False and (random.random() < drop_prob):  # Randomly decide to drop a letter
+            string_list[idx] = ''
+
+    new_string_list = []
+    previous_was_dropped = False  # we avoid dropping a few letters in a row
+    for char in string_list:
+        new_string_list.append(char)
+        if (previous_was_dropped is False) and (random.random() < space_prob):  # Randomly decide to add a space
+            new_string_list.append(' ')
+            previous_was_dropped = True
+            continue
+        previous_was_dropped = False
+
+    return ''.join(new_string_list)
 
 
-def create_augmentations(percentage=30, verbose=False):
+def create_augmentations(percentage=20, verbose=False):
     default_prob = float(percentage) / 100
-    input_txt_path = 'datasets/hebrew_text.txt'
-    output_path = 'datasets/hebrew_text_aug_' + str(percentage)
+
+    input_txt_path = data_dir + 'hebrew_text.txt'
+    output_path = data_dir + 'hebrew_text_aug_' + str(percentage)
 
     # Read the input TXT file
     with open(input_txt_path, 'r', encoding='utf-8') as infile:
@@ -54,6 +84,8 @@ def create_augmentations(percentage=30, verbose=False):
     for line in lines:
         line = line.strip()
         modified_line = random_replace(line, default_prob)
+        if line == '' or len(line) < 2:
+            continue
         processed_lines.append(f"{line}\t{modified_line}")
 
     if verbose:
@@ -99,17 +131,19 @@ def export_dataset(excel_path):
 
 
 def export_train_test_dataset(excel_path, test_size=0.2):
-    if (not os.path.exists('datasets/train.pt')) and (not os.path.exists('datasets/test.pt')):
+    train_path = data_dir + 'train.pt'
+    test_path = data_dir + 'test.pt'
+    if (not os.path.exists(train_path)) and (not os.path.exists(test_path)):
         dataset = export_dataset(excel_path)
         # Split the dataset into training and testing sets
         train_test_split = dataset.train_test_split(test_size=test_size)
-        torch.save(train_test_split['train'], 'datasets/train.pt')
-        torch.save(train_test_split['test'], 'datasets/test.pt')
+        torch.save(train_test_split['train'], train_path)
+        torch.save(train_test_split['test'], test_path)
 
         return train_test_split['train'], train_test_split['test']
     else:
-        train_split = torch.load('datasets/train.pt')
-        test_split = torch.load('datasets/test.pt')
+        train_split = torch.load(train_path)
+        test_split = torch.load(test_path)
         return train_split, test_split
 
 
@@ -120,4 +154,5 @@ def full_run(percentage=30, verbose=False):
 
 def full_run_train_test_split(percentage=30, verbose=True):
     return export_train_test_dataset(create_augmentations(percentage, verbose))
+
 
