@@ -1,8 +1,13 @@
-import torch
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+import os
 from transformer_prepare_data import *
 
-model, tokenizer = get_model_and_data(verbose=False)
+checkpoint_path = 'saved_model_acc_89.4.pth'
+if not os.path.exists(checkpoint_path):
+    checkpoint_path = input("Checkpoint Path: ")
+
+model, tokenizer = get_model()
+checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+model.load_state_dict(checkpoint['model_state_dict'])
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model.to(device)
@@ -17,6 +22,7 @@ new_data_tokenized = tokenizer(
 input_ids = new_data_tokenized['input_ids'].to(device)
 attention_mask = new_data_tokenized['attention_mask'].to(device)
 
+"""
 # Get most recent model:
 directory_path = 'spellcheck_model/'
 most_recent_file = None
@@ -30,11 +36,11 @@ for entry in os.scandir(directory_path):
             # update the most recent file and its modification time
             most_recent_file = entry.name
             most_recent_time = mod_time
-
 model_path = str(directory_path) + str(most_recent_file)
 model.load_state_dict(torch.load(model_path))
-model.eval()
+"""
 
+model.eval()
 with torch.no_grad():
     generated_ids = model.generate(
         input_ids=input_ids,
@@ -51,3 +57,19 @@ for i, pred in enumerate(predictions):
     print(f"Output: {pred}")
     print()
 
+while True:
+    input_text = input('Input: ')
+    input_text_tokenized = tokenizer(
+        [input_text], max_length=128, padding='max_length', truncation=True, return_tensors='pt'
+    )
+    input_ids = input_text_tokenized['input_ids'].to(device)
+    attention_mask = input_text_tokenized['attention_mask'].to(device)
+    generated_ids = model.generate(
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+        max_length=128,
+        num_beams=4,
+        early_stopping=True
+    )
+    predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in generated_ids]
+    print(predictions[0])

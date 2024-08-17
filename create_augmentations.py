@@ -1,22 +1,9 @@
 import os.path
 import pandas as pd
 import random
-from datasets import Dataset, DatasetDict
+from datasets import Dataset
 import torch
-
-
-def is_running_in_colab():
-    try:
-        import google.colab
-        return True
-    except ImportError:
-        return False
-
-
-data_dir = 'datasets/'
-if is_running_in_colab():
-    data_dir = ""
-
+import numpy as np
 
 def random_replace(string, default_prob):
     drop_prob = default_prob / 6
@@ -69,7 +56,7 @@ def random_replace(string, default_prob):
     return ''.join(new_string_list)
 
 
-def create_augmentations(percentage=20, verbose=False):
+def create_augmentations(data_dir, percentage=20, verbose=False, truncate_min=1, truncate_max=13):
     default_prob = float(percentage) / 100
 
     input_txt_path = data_dir + 'hebrew_text.txt'
@@ -80,28 +67,32 @@ def create_augmentations(percentage=20, verbose=False):
         lines = infile.readlines()
 
     # Process each line
-    processed_lines = []
-    for line in lines:
-        line = line.strip()
-        modified_line = random_replace(line, default_prob)
-        if line == '' or len(line) < 2:
-            continue
-        processed_lines.append(f"{line}\t{modified_line}")
+    processed_lines = [lines[0]]
+    for long_line in lines[1:]:
+        long_line = long_line.strip()
+        if truncate_min is None or truncate_max is None:
+            current_lines = [long_line]
+        else:
+            words = long_line.split()
+            current_lines = []
+            i = 0
+            while i < len(words):
+                num_words = np.random.randint(truncate_min, truncate_max)
+                current_lines.append(' '.join(words[i:i+num_words]))
+                i += num_words
+        for line in current_lines:
+            modified_line = random_replace(line, default_prob)
+            if line == '' or len(line) < 2:
+                continue
+            processed_lines.append(f"{line}\t{modified_line}")
 
     if verbose:
         print(f'-----------> Example:\n\n')
         print(processed_lines[1])
         print(f'<-----------= Example:\n\n')
 
-    # Save data in txt format - uncomment to activate
-    # # Write the original and modified text to the output TXT file
-    # output_txt_path = output_path + '.txt'
-    # with open(output_txt_path, 'w', encoding='utf-8') as outfile:
-    #     outfile.write('\n'.join(processed_lines))
-    #
-    # print(f"Modified data saved to {output_txt_path}")
-
-    print(f'\nExporting the data to Excel file')
+    print(f'Exporting the data to Excel file...')
+    print(f'{len(processed_lines)-1} lines.')
 
     processed_lines = processed_lines[1:]
     data = [line.strip().split('\t') for line in processed_lines]
@@ -129,30 +120,20 @@ def export_dataset(excel_path):
 
     return dataset
 
-
-def export_train_test_dataset(excel_path, test_size=0.2):
+def create_or_load_dataset(data_dir, augemntation_percentage=30, test_size=0.2, verbose=False, force_create=False):
     train_path = data_dir + 'train.pt'
     test_path = data_dir + 'test.pt'
-    if (not os.path.exists(train_path)) and (not os.path.exists(test_path)):
+    if force_create or (not os.path.exists(train_path)) or (not os.path.exists(test_path)):
+        print('Creating & Saving Dataset...')
+        excel_path = create_augmentations(data_dir, augemntation_percentage, verbose)
         dataset = export_dataset(excel_path)
         # Split the dataset into training and testing sets
         train_test_split = dataset.train_test_split(test_size=test_size)
         torch.save(train_test_split['train'], train_path)
         torch.save(train_test_split['test'], test_path)
-
         return train_test_split['train'], train_test_split['test']
     else:
+        print('Loading Dataset from file...')
         train_split = torch.load(train_path)
         test_split = torch.load(test_path)
         return train_split, test_split
-
-
-
-def full_run(percentage=30, verbose=False):
-    return export_dataset(create_augmentations(percentage, verbose))
-
-
-def full_run_train_test_split(percentage=30, verbose=True):
-    return export_train_test_dataset(create_augmentations(percentage, verbose))
-
-

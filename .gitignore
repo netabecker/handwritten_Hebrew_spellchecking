@@ -2,3 +2,5 @@
 HebHTR/__pycache__
 /__pycache__/*
 /logs/*
+*.pth
+*.crdownload

@@ -10,5 +10,5 @@ class HebHTR:
 
     def imgToWord(self):
         word_imgs = segmentWordsInSentence(self.img)
-        transcribed_words = [predictWord(img, self.predictWordModel) for img in word_imgs]
+        transcribed_words = [predictWord(img, self.predictWordModel)[0] for img in word_imgs]
         return transcribed_words
