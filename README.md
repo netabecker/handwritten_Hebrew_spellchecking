@@ -1,66 +1,81 @@
-# **handwritten Hebrew spellchecking Model**
+# OSCAR: Hebrew Handwritten Spell Checker
+
+This project is a pipeline for correcting spelling mistakes in handwritten Hebrew text. The solution involves three main components:
+1. **Word Segmentation**: Splits an image containing multiple words into individual word images.
+2. **HTR**: Extracts text from the segmented word images using an existing model.
+3. **Spelling Correction**: Fixes spelling mistakes in the extracted text using an MT5-based language model fine-tuned on Hebrew data.
+
+## Table of Contents
+- [Overview](#overview)
+- [Components](#components)
+  - [1. Word Segmentation](#1-word-segmentation)
+  - [2. Hebrew Handwritten Text Recognition](#2-hebrew-handwritten-text-recognition)
+  - [3. Spelling Correction](#3-spelling-correction)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Results](#results)
+- [References](#references)
+
+## Overview
+The model takes an image of handwritten Hebrew text, splits it into individual word images, recognizes the text using HTR, and then corrects any spelling mistakes using a language model trained on Hebrew song lyrics.
+
+## Components
+
+### 1. Word Segmentation
+This module handles segmenting an image into smaller images, each containing a single word. We implemented this component to support handwritten text.
+![image](https://github.com/user-attachments/assets/33c9acac-aac3-44f0-8b66-9d834b222428)
+The input image was taken from: https://github.com/Lotemn102/HebHTR
+
+### 2. Hebrew Handwritten Text Recognition
+For text extraction, we integrated an existing HTR model from here: https://github.com/Lotemn102/HebHTR
+
+It is based on the Harald Scheidl's CTC-WordBeam, implemented here: [https://github.com/githubharald/CTCWordBeamSearch.git](https://github.com/githubharald/CTCWordBeamSearch)
+
+### 3. Spelling Correction
+The final component is a language model based on MT5. We fine-tuned the model to correct spelling errors by training it on a custom dataset. 
+
+We've trained the model on Guy Barash's Hebrew songs lyrics dataset (https://www.kaggle.com/datasets/guybarash/hebrew-songs-lyrics), which consists of lyrics of ~15,000 Hebrew songs. We randomly trimmed each entry and induced random spelling mistakes.
+
+<img src="https://github.com/user-attachments/assets/1c0220db-8700-424d-90e7-a7a8191fa6da" alt="image" width="50%" height="50%"/>
 
 
-### Breakdown to tasks:
+## Installation
+1. **Python and TensorFlow Requirements:**
+   - Python version: `3.6` or `3.7`
+   - TensorFlow version: `1.15`
 
-**1. OCR Model:** 
-- [x] Clone the existing OCR model and make it usable.
+2. **Clone the repository:**
+   ```bash
+   git clone https://github.com/netabecker/handwritten_Hebrew_spellchecking.git
+   ```
 
-**2. Image Segmentation Model:**
-- [ ] Create or find existing model to break up images of sentences.
+3. **Clone Harald Scheidl's CTC-WordBeam repository:**
+   ```bash
+   git clone https://github.com/githubharald/CTCWordBeamSearch.git
+   ```
 
-**3. Create a dataset of misspelled sentences:**
-- [ ] Create a dataset of misspelled sentences and their correct versions.
+4. **Create a virtual enviorment for the project and install the required dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-**4. Hebrew word2vec Model:**
-- [ ] Find existing and make usable.
+5. **In the virtual enviorment, install your local clone of CTC-WordBeam:**
+   ```bash
+   pip install -e path/to/CTC-WordBeam
+   ```
 
-**5. Error Detection and Correction Model**
-- [ ] Develop a seq2seq model to identify and correct potential spelling errors.
-      
-**6. Training the Spellchecking Model**
-- [ ] Training Data: Create pairs of erroneous text and the corresponding correct text.
-- [ ] Model Architecture: Look at models like BERT or GPT.
-
-**7. Integration and Testing**
-- [ ] Integration: Integrate your spellchecker with the OCR and segmentation models to form a complete pipeline from handwritten text image to corrected digital text.
-- [ ] Testing: Test the entire pipeline on new handwritten Hebrew text samples.
-
-
-**Tools and Libraries** \
-Deep Learning Frameworks: TensorFlow, PyTorch \
-NLP Libraries: Hugging Face Transformers, NLTK, SpaCy \
-Data Augmentation: Tools for generating synthetic handwritten text images (if needed) 
+7. **Run TrainModel.py, or download a trained model and place it in the main directory.**
 
 
-### Resources
-**1. Handritten text recognition model:**\
-https://github.com/Lotemn102/HebHTR
-https://github.com/githubharald/SimpleHTR
-
-**2. Hebrew word2vec model:**\
-https://github.com/liorshk/wordembedding-hebrew
-
-**3. Guides about translation, seq2seq and transformers**\
-https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html
-https://github.com/bentrevett/pytorch-seq2seq
-
-### Example Workflow
-
-```
-ocr_output = ocr_model.predict(handwritten_text_image)
-Spellchecking Model:
-
-corrected_text = spellchecker_model.correct(ocr_output)
-End-to-End Pipeline:
-
-def process_image(image):
-    ocr_output = ocr_model.predict(image)
-    corrected_text = spellchecker_model.correct(ocr_output)
-    return corrected_text
-```
+## Usage
+To run the model, run `main.py`. If there's nothing in the default locations, the script will prompt you for input image and model checkpoint.
 
 
+## Results
+The pipeline outputs corrected text with significantly improved accuracy over raw OCR outputs, especially in cases where spelling errors are common in handwritten documents.
 
-
-
+## References
+1. [Harald Scheid's SimpleHTR model](https://towardsdatascience.com/build-a-handwritten-text-recognition-system-using-tensorflow-2326a3487cd5)
+2. [CTC-WordBeamSearch](https://towardsdatascience.com/word-beam-search-a-ctc-decoding-algorithm-b051d28f3d2e)
+3. [H"ebrew songs lyrics" on Kaggle](https://www.kaggle.com/datasets/guybarash/hebrew-songs-lyrics)
+4. [Linting Xue, Noah Constant, Adam Roberts, Mihir Kale, Rami Al-Rfou, Aditya Siddhant, Aditya Barua, Colin Raffel. "mT5: A Massively Multilingual Pre-trained Text-to-Text Transformer". 2021](https://aclanthology.org/2021.naacl-main.41/)
