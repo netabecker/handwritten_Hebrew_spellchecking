@@ -74,6 +74,10 @@ To run the model, run `main.py`. If there's nothing in the default locations, th
 ## Results
 The pipeline outputs corrected text with significantly improved accuracy over raw OCR outputs, especially in cases where spelling errors are common in handwritten documents.
 
+![image](https://github.com/user-attachments/assets/62a35daa-010f-48f9-b756-65091f8d28ef)
+
+
+
 ## References
 1. [Harald Scheid's SimpleHTR model](https://towardsdatascience.com/build-a-handwritten-text-recognition-system-using-tensorflow-2326a3487cd5)
 2. [CTC-WordBeamSearch](https://towardsdatascience.com/word-beam-search-a-ctc-decoding-algorithm-b051d28f3d2e)
