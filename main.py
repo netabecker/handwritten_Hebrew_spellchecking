@@ -1,15 +1,23 @@
 import os
 import sys
+import cv2
 import torch
 import re
 
-import transformer_prepare_data
+import prepareModel
+from segmentWordsInSentence import segmentWordsInSentence
 
 sys.path.append('./HebHTR')
 import HebHTR
 
 # Get Text from the image
-img = HebHTR.HebHTR('example2.png')
+img_path = 'example3.jpeg'
+if not os.path.exists(img_path):
+    img_path = input("Image Path: ")
+img = cv2.imread(img_path)
+word_imgs = segmentWordsInSentence(img)
+predictWordModel = HebHTR.predictWord.getModel(decoder_type='word_beam')
+transcribed_words = [HebHTR.predictWord.predictWord(img, predictWordModel)[0] for img in word_imgs]
 text = ' '.join(img.imgToWord())
 print(text)
 
@@ -20,7 +28,6 @@ text = re.sub(r'[^\u0590-\u05FF\s]', '', text)
 checkpoint_path = 'saved_checkpoint.pth'
 if not os.path.exists(checkpoint_path):
     checkpoint_path = input("Checkpoint Path: ")
-
 model, tokenizer = transformer_prepare_data.get_model()
 checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
 model.load_state_dict(checkpoint['model_state_dict'])
@@ -34,7 +41,6 @@ tokenized = tokenizer(
 )
 input_ids = tokenized['input_ids'].to(device)
 attention_mask = tokenized['attention_mask'].to(device)
-
 model.eval()
 with torch.no_grad():
     generated_ids = model.generate(
@@ -44,6 +50,5 @@ with torch.no_grad():
         num_beams=4,
         early_stopping=True
     )
-
 predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in generated_ids]
 print(predictions)

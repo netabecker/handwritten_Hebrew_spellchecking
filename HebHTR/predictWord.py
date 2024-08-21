@@ -278,6 +278,9 @@ def preprocessImageForPrediction(img, imgSize):
     # binarize image (Chen & Netta)
     _, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
+    # erode image (Chen & Netta)
+    img = cv2.erode(img, np.ones((5,5)))
+
     # create target image and copy sample image into it
     (wt, ht) = imgSize
     (h, w) = img.shape
