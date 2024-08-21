@@ -81,5 +81,5 @@ The pipeline outputs corrected text with significantly improved accuracy over ra
 ## References
 1. [Harald Scheid's SimpleHTR model](https://towardsdatascience.com/build-a-handwritten-text-recognition-system-using-tensorflow-2326a3487cd5)
 2. [CTC-WordBeamSearch](https://towardsdatascience.com/word-beam-search-a-ctc-decoding-algorithm-b051d28f3d2e)
-3. [H"ebrew songs lyrics" on Kaggle](https://www.kaggle.com/datasets/guybarash/hebrew-songs-lyrics)
+3. ["Hebrew songs lyrics" on Kaggle](https://www.kaggle.com/datasets/guybarash/hebrew-songs-lyrics)
 4. [Linting Xue, Noah Constant, Adam Roberts, Mihir Kale, Rami Al-Rfou, Aditya Siddhant, Aditya Barua, Colin Raffel. "mT5: A Massively Multilingual Pre-trained Text-to-Text Transformer". 2021](https://aclanthology.org/2021.naacl-main.41/)
